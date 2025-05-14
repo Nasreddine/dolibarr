@@ -1,12 +1,12 @@
-version: "3"
-
 services:
     mariadb-prod:
         container_name: dolibarr-mariadb-prod
         image: mariadb:latest
         environment:
-            MYSQL_ROOT_PASSWORD: $MYSQL_ROOT_PWD
-            MYSQL_DATABASE: "dolibarr-prod"
+            - MYSQL_ROOT_PASSWORD=root
+            - MYSQL_DATABASE=smart_stock
+        volumes:
+            - dolibarr_db_data:/var/lib/mysql
 
     web:
         container_name: dolibarr-web-prod
@@ -19,19 +19,24 @@ services:
         depends_on:
             - mariadb-prod
         environment:
-            HOST_USER_ID: $HOST_USER_ID
-            HOST_GROUP_ID: $HOST_GROUP_ID
-            DOLI_ROOT_PASSWORD: $MYSQL_ROOT_PWD
-            DOLI_DATABASE: "dolibarr-prod"
-            DOLI_DB_SERVER: "mariadb-prod"
+            - HOST_USER_ID=${HOST_USER_ID}
+            - HOST_GROUP_ID=${HOST_GROUP_ID}
+            - DOLI_ROOT_PASSWORD=root
+            - DOLI_DATABASE=smart_stock
+            - DOLI_DB_SERVER=mariadb-prod
         ports:
             - "8089:80"
     
     phpmyadmin:
         image: phpmyadmin/phpmyadmin
+        container_name: dolibarr-phpmyadmin-prod
         environment:
-            PMA_HOST: mariadb-prod
+            - PMA_HOST=mariadb-prod
+            - MYSQL_ROOT_PASSWORD=root
         depends_on:
             - mariadb-prod
         ports:
             - "8080:80"
+
+volumes:
+    dolibarr_db_data:

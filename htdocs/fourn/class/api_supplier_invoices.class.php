@@ -96,7 +96,7 @@ class SupplierInvoices extends DolibarrApi
 	 * @param int		$limit			  Limit for list
 	 * @param int		$page			  Page number
 	 * @param string	$thirdparty_ids	  Thirdparty ids to filter invoices of (example '1' or '1,2,3') {@pattern /^[0-9,]*$/i}
-	 * @param string	$status			  Filter by invoice status : draft | unpaid | paid | cancelled
+	 * @param string	$status			  Filter by invoice status : draft | unpaid | paid | cancelled
 	 * @param string    $sqlfilters       Other criteria to filter answers separated by a comma. Syntax example "(t.ref:like:'SO-%') and (t.datec:<:'20160101')"
 	 * @param string    $properties		  Restrict the data returned to these properties. Ignored if empty. Comma separated list of properties names
 	 * @param bool      $pagination_data  If this parameter is set to true the response will include pagination data. Default value is false. Page starts from 0*
@@ -382,6 +382,56 @@ class SupplierInvoices extends DolibarrApi
 				'message' => 'Invoice validated (Ref=' . $this->invoice->ref . ')'
 			)
 		);
+	}
+
+	/**
+	 * Sets an invoice as draft
+	 *
+	 * @param   int     $id             Id of supplier invoice
+	 * @param   int     $idwarehouse    Warehouse ID
+	 * @param   int     $notrigger      1=Does not execute triggers, 0= execute triggers
+	 * @return  Object                  Object with cleaned properties
+	 *
+	 * @url POST    {id}/settodraft
+	 *
+	 * @throws RestException 304
+	 * @throws RestException 403
+	 * @throws RestException 404
+	 * @throws RestException 500 System error
+	 */
+	public function settodraft($id, $idwarehouse = -1, $notrigger = 0)
+	{
+		if (!DolibarrApiAccess::$user->hasRight("fournisseur", "facture", "creer")) {
+			throw new RestException(403);
+		}
+		
+		$result = $this->invoice->fetch($id);
+		if (!$result) {
+			throw new RestException(404, 'Invoice not found');
+		}
+
+		if (!DolibarrApi::_checkAccessToResource('fournisseur', $id, 'facture_fourn', 'facture')) {
+			throw new RestException(403, 'Access not allowed for login ' . DolibarrApiAccess::$user->login);
+		}
+
+		$result = $this->invoice->setDraft(DolibarrApiAccess::$user, $idwarehouse, $notrigger);
+		if ($result == 0) {
+			throw new RestException(304, 'Nothing done.');
+		}
+		if ($result < 0) {
+			throw new RestException(500, 'Error : ' . $this->invoice->error);
+		}
+
+		$result = $this->invoice->fetch($id);
+		if (!$result) {
+			throw new RestException(404, 'Invoice not found');
+		}
+
+		if (!DolibarrApi::_checkAccessToResource('fournisseur', $id, 'facture_fourn', 'facture')) {
+			throw new RestException(403, 'Access not allowed for login ' . DolibarrApiAccess::$user->login);
+		}
+
+		return $this->_cleanObjectDatas($this->invoice);
 	}
 
 	/**
